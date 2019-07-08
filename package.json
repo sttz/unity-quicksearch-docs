@@ -1,0 +1,17 @@
+{
+    "name": "ch.sttz.quicksearch.docs",
+    "displayName": "Quick Search Docs",
+    "version": "0.0.1",
+    "unity": "2018.4",
+    "description": "Unity Docs SearchProvider for Unity Quick Search.",
+    "keywords": [ "unity", "quicksearch", "docs" ],
+    "author": {
+        "name": "Adrian Stutz",
+        "email": "adrian@sttz.ch",
+        "url": "https://sttz.ch"
+    },
+    "license": "MIT",
+    "dependencies": {
+        "com.unity.quicksearch": "1.2.8-preview"
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "name": "ch.sttz.quicksearch.docs",
+    "references": [
+        "com.unity.quicksearch"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": []
+}
