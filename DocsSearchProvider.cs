@@ -30,24 +30,19 @@ public static class DocsSearchProvider
     {
         return new SearchProvider("ch.sttz.quicksearch-docs", "Docs") {
             filterId = "docs:",
-            fetchItems = (context, items, provider) => SearchDocs(context, provider)
+            fetchItems = (context, items, provider) => 
+                GetSearchResults(context.tokenizedSearchQueryLower, context.searchQuery)
+                    .Select(result => 
+                        provider.CreateItem(
+                            "ch.sttz.quicksearch-docs." + result.url, 
+                            -result.score, 
+                            result.title, 
+                            result.description, 
+                            Icons[result.type], 
+                            result
+                        )
+                    )
         };
-    }
-
-    private static IEnumerable<SearchItem> SearchDocs(SearchContext context, SearchProvider provider)
-    {
-        var tokens = context.tokenizedSearchQueryLower;
-        foreach (var r in GetSearchResults(tokens, context.searchQuery))
-        {
-            if (r == null)
-            {
-                yield return null;
-                continue;
-            }
-
-            var result = r.Value;
-            yield return provider.CreateItem("ch.sttz.quicksearch-docs." + result.url, -result.score, result.title, result.description, Icons[result.type], result);
-        }
     }
 
     [UsedImplicitly, SearchActionsProvider]
@@ -94,7 +89,7 @@ public static class DocsSearchProvider
     /// <param name="tokens">Tokenized search query</param>
     /// <param name="query">Original search query</param>
     /// <returns>Pages matching the query</returns>
-    public static IEnumerable<DocsIndex.Page?> GetSearchResults(string[] tokens, string query) {
+    public static IEnumerable<DocsIndex.Page> GetSearchResults(string[] tokens, string query) {
         if (searchIndex == null) {
             LoadIndex();
             if (searchIndex == null) {
@@ -145,7 +140,6 @@ public static class DocsSearchProvider
             var score = pair.Value;
 
             if (score < minScore) {
-                yield return null;
                 continue;
             }
 
