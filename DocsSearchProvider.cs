@@ -48,12 +48,9 @@ public static class DocsSearchProvider
     [UsedImplicitly, SearchActionsProvider]
     static IEnumerable<SearchAction> ActionHandlers()
     {
-        return new[]
-        {
-            new SearchAction("ch.sttz.quicksearch-docs", "open", null, "Open In Browser...")
-            {
-                handler = (item, context) =>
-                {
+        return new[] {
+            new SearchAction("ch.sttz.quicksearch-docs", "open", null, "Open In Browser...") {
+                handler = (item, context) => {
                     var result = (DocsIndex.Page)item.data;
                     System.Diagnostics.Process.Start(new Uri($"{BASE_URL}{result.url}.html").AbsoluteUri);
                 }
@@ -214,19 +211,19 @@ public static class DocsSearchProvider
     /// Search result icons by documentation page type.
     /// </summary>
     static readonly Dictionary<DocsIndex.PageType, Texture2D> Icons = new Dictionary<DocsIndex.PageType, Texture2D> {
-        [DocsIndex.PageType.Class] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Class.png"),
-        [DocsIndex.PageType.Delegate] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Delegate.png"),
+        [DocsIndex.PageType.Class]       = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Class.png"),
+        [DocsIndex.PageType.Delegate]    = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Delegate.png"),
         [DocsIndex.PageType.Enumeration] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Enumeration.png"),
-        [DocsIndex.PageType.Enumerator] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Enumerator.png"),
-        [DocsIndex.PageType.Event] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Event.png"),
-        [DocsIndex.PageType.Interface] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Interface.png"),
-        [DocsIndex.PageType.Message] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Message.png"),
-        [DocsIndex.PageType.Method] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Method.png"),
-        [DocsIndex.PageType.Module] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Module.png"),
-        [DocsIndex.PageType.Obsolete] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Obsolete.png"),
-        [DocsIndex.PageType.Property] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Property.png"),
-        [DocsIndex.PageType.Struct] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Struct.png"),
-        [DocsIndex.PageType.Unknown] = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Unknown.png"),
+        [DocsIndex.PageType.Enumerator]  = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Enumerator.png"),
+        [DocsIndex.PageType.Event]       = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Event.png"),
+        [DocsIndex.PageType.Interface]   = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Interface.png"),
+        [DocsIndex.PageType.Message]     = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Message.png"),
+        [DocsIndex.PageType.Method]      = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Method.png"),
+        [DocsIndex.PageType.Module]      = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Module.png"),
+        [DocsIndex.PageType.Obsolete]    = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Obsolete.png"),
+        [DocsIndex.PageType.Property]    = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Property.png"),
+        [DocsIndex.PageType.Struct]      = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Struct.png"),
+        [DocsIndex.PageType.Unknown]     = (Texture2D)EditorGUIUtility.Load($"{iconFolder}/Unknown.png"),
     };
 }
 
