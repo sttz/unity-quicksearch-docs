@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using Unity.QuickSearch;
 using UnityEditor;
 using UnityEngine;
@@ -24,29 +25,32 @@ public static class DocsSearchProvider
     /// </summary>
     static string packageFolderName = $"Packages/{packageName}";
 
-    [SearchItemProvider]
+    [UsedImplicitly, SearchItemProvider]
     public static SearchProvider CreateProvider()
     {
         return new SearchProvider("ch.sttz.quicksearch-docs", "Docs") {
             filterId = "docs:",
-            fetchItems = (context, items, provider) => {
-                var tokens = context.tokenizedSearchQueryLower;
-                var results = GetSearchResults(tokens, context.searchQuery);
-                foreach (var result in results) {
-                    items.Add(provider.CreateItem(
-                        "ch.sttz.quicksearch-docs." + result.url,
-                        -result.score,
-                        result.title,
-                        result.description,
-                        Icons[result.type],
-                        result
-                    ));
-                }
-            }
+            fetchItems = (context, items, provider) => SearchDocs(context, provider)
         };
     }
 
-    [SearchActionsProvider]
+    private static IEnumerable<SearchItem> SearchDocs(SearchContext context, SearchProvider provider)
+    {
+        var tokens = context.tokenizedSearchQueryLower;
+        foreach (var r in GetSearchResults(tokens, context.searchQuery))
+        {
+            if (r == null)
+            {
+                yield return null;
+                continue;
+            }
+
+            var result = r.Value;
+            yield return provider.CreateItem("ch.sttz.quicksearch-docs." + result.url, -result.score, result.title, result.description, Icons[result.type], result);
+        }
+    }
+
+    [UsedImplicitly, SearchActionsProvider]
     static IEnumerable<SearchAction> ActionHandlers()
     {
         return new[]
@@ -90,11 +94,11 @@ public static class DocsSearchProvider
     /// <param name="tokens">Tokenized search query</param>
     /// <param name="query">Original search query</param>
     /// <returns>Pages matching the query</returns>
-    public static IEnumerable<DocsIndex.Page> GetSearchResults(string[] tokens, string query) {
+    public static IEnumerable<DocsIndex.Page?> GetSearchResults(string[] tokens, string query) {
         if (searchIndex == null) {
             LoadIndex();
             if (searchIndex == null) {
-                return Enumerable.Empty<DocsIndex.Page>();
+                yield break;
             }
         }
 
@@ -110,16 +114,16 @@ public static class DocsSearchProvider
                 continue;
             }
 
-            var doPrefixSerach = (token.Length >= 3);
+            var doPrefixSearch = (token.Length >= 3);
             var lo = 0;
             var hi = indexLength - 1;
             while (lo <= hi) {
                 var i = lo + ((hi - lo) >> 1);
                 var key = keys[i];
-                var c = string.Compare(key, token);
-                if (c == 0 || (doPrefixSerach && key.StartsWith(token))) {
+                var c = String.CompareOrdinal(key, token);
+                if (c == 0 || (doPrefixSearch && key.StartsWith(token))) {
                     AddResults(searchIndex.indexValues[i].pages, pages);
-                    if (doPrefixSerach) {
+                    if (doPrefixSearch) {
                         for (var j = i - 1; j >= 0 && keys[j].StartsWith(token); j--) {
                             AddResults(searchIndex.indexValues[j].pages, pages);
                         }
@@ -137,11 +141,11 @@ public static class DocsSearchProvider
         }
 
         // Process page matches and calculate result score
-        var results = new List<DocsIndex.Page>(pages.Count);
         foreach (var pair in pages) {
             var score = pair.Value;
 
             if (score < minScore) {
+                yield return null;
                 continue;
             }
 
@@ -185,10 +189,8 @@ public static class DocsSearchProvider
                 score -= 100000;
             }
             result.score = score;
-            results.Add(result);
+            yield return result;
         }
-
-        return results;
     }
 
     /// <summary>
