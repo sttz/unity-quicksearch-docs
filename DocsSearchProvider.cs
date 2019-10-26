@@ -39,6 +39,10 @@ public static class DocsSearchProvider
     /// Sub path script reference in Unity's online versioned documentation.
     /// </summary>
     const string docsSubPath = "Documentation/ScriptReference";
+    /// <summary>
+    /// Sub path to script reference in the local documentation.
+    /// </summary>
+    const string localDocsSubPath = "en/ScriptReference";
 
     [UsedImplicitly, SearchItemProvider]
     public static SearchProvider CreateProvider()
@@ -64,10 +68,19 @@ public static class DocsSearchProvider
     static IEnumerable<SearchAction> ActionHandlers()
     {
         return new[] {
-            new SearchAction("ch.sttz.quicksearch-docs", "open", null, "Open In Browser...") {
+            new SearchAction("ch.sttz.quicksearch-docs", "open", null, "Open in Browser...") {
                 handler = (item, context) => {
-                    var result = (DocsIndex.Page)item.data;
-                    System.Diagnostics.Process.Start(new Uri($"{BASE_URL}{result.url}.html").AbsoluteUri);
+                    if (item.data is DocsIndex.Page result) {
+                        string url;
+                        if (localDocsPath != null) {
+                            url = $"file://{localDocsPath}/{localDocsSubPath}/{result.url}.html";
+                        } else {
+                            url = $"{docsBaseUrl}/{searchIndex.unityVersion}/{docsSubPath}/{result.url}.html";
+                        }
+                        System.Diagnostics.Process.Start(new Uri(url).AbsoluteUri);
+                    } else if (item.data is string path) {
+                        EditorUtility.RevealInFinder(path);
+                    }
                 }
             },
         };
@@ -79,6 +92,10 @@ public static class DocsSearchProvider
     /// The currently loaded search index.
     /// </summary>
     static DocsIndex searchIndex;
+    /// <summary>
+    /// Path to the locally installed documentation, if it exists.
+    /// </summary>
+    static string localDocsPath;
 
     /// <summary>
     /// Helper to add or increase hits of a result.
@@ -282,6 +299,14 @@ public static class DocsSearchProvider
         var json = File.ReadAllText(bestIndex);
         searchIndex = JsonUtility.FromJson<DocsIndex>(json);
         searchIndexPath = bestIndex;
+        localDocsPath = null;
+
+        // Check for location documentation
+        var unityPath = Path.GetDirectoryName(EditorApplication.applicationPath);
+        var docsPath = Path.Combine(unityPath, "Documentation");
+        if (Directory.Exists(docsPath)) {
+            localDocsPath = docsPath;
+        }
 
         return true;
     }
