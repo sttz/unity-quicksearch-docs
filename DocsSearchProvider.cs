@@ -49,18 +49,34 @@ public static class DocsSearchProvider
     {
         return new SearchProvider("ch.sttz.quicksearch-docs", "Docs") {
             filterId = "docs:",
-            fetchItems = (context, items, provider) => 
-                GetSearchResults(context.tokenizedSearchQueryLower, context.searchQuery)
+            fetchItems = (context, items, provider) => {
+                var results = GetSearchResults(context.tokenizedSearchQueryLower, context.searchQuery)
                     .Select(result => 
                         provider.CreateItem(
-                            "ch.sttz.quicksearch-docs." + result.url, 
+                            "ch.sttz.quicksearch-docs.result." + result.url, 
                             -result.score, 
                             result.title, 
                             result.description, 
                             Icons[result.type], 
                             result
                         )
-                    )
+                    );
+
+                if (searchIndex != null) {
+                    results = results.Append(
+                        provider.CreateItem(
+                            "ch.sttz.quicksearch-docs.index", 
+                            10000, 
+                            "Quick Search Docs Index", 
+                            $"Index ({searchIndex.docsVersion}) for Unity {searchIndex.unityVersion} at {searchIndexPath}", 
+                            null, 
+                            searchIndexPath
+                        )
+                    );
+                }
+
+                return results;
+            }
         };
     }
 
@@ -92,6 +108,10 @@ public static class DocsSearchProvider
     /// The currently loaded search index.
     /// </summary>
     static DocsIndex searchIndex;
+    /// <summary>
+    /// The path the current index was loaded from.
+    /// </summary>
+    static string searchIndexPath;
     /// <summary>
     /// Path to the locally installed documentation, if it exists.
     /// </summary>
