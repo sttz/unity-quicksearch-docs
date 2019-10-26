@@ -30,7 +30,7 @@ public static class DocsIndexGenerator
     /// <summary>
     /// Regex to parse version from <see cref="VersionPath"/>.
     /// </summary>
-    static readonly Regex VersionRegex = new Regex(@"Publication: (\d+\.\d+\w?)-(\w+)");
+    static readonly Regex VersionRegex = new Regex(@"Publication: (\d+\.\d+)\w?-(\w+)");
 
     /// <summary>
     /// Struct used to parse the index JSON file.
