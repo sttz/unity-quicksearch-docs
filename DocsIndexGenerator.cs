@@ -212,6 +212,10 @@ public static class DocsIndexGenerator
     /// Identifier to look for to determine delegates.
     /// </summary>
     const string IsDelegate = "public delegate";
+    /// <summary>
+    /// String used to detect broken pages that have no content.
+    /// </summary>
+    const string LeaveFeedback = "Leave feedback";
 
     /// <summary>
     /// Regex to parse member type headings in member lists.
@@ -236,6 +240,16 @@ public static class DocsIndexGenerator
         // Broken pages
         ["PopupWindow"] = DocsIndex.PageType.Class,
         ["XR.XRNodeState"] = DocsIndex.PageType.Struct,
+        ["LightingExplorerTableColumn.DataType.Checkbox"] = DocsIndex.PageType.Enumerator,
+        ["LightingExplorerTableColumn.DataType.Color"] = DocsIndex.PageType.Enumerator,
+        ["LightingExplorerTableColumn.DataType.Custom"] = DocsIndex.PageType.Enumerator,
+        ["LightingExplorerTableColumn.DataType.Enum"] = DocsIndex.PageType.Enumerator,
+        ["LightingExplorerTableColumn.DataType.Float"] = DocsIndex.PageType.Enumerator,
+        ["LightingExplorerTableColumn.DataType.Int"] = DocsIndex.PageType.Enumerator,
+        ["LightingExplorerTableColumn.DataType.Name"] = DocsIndex.PageType.Enumerator,
+        ["ProjectWindowCallback.EndNameEditAction"] = DocsIndex.PageType.Class,
+        ["ProjectWindowCallback.EndNameEditAction.Action"] = DocsIndex.PageType.Method,
+        ["ProjectWindowCallback.EndNameEditAction.Cancelled"] = DocsIndex.PageType.Method,
     };
 
     /// <summary>
@@ -259,6 +273,11 @@ public static class DocsIndexGenerator
         }
 
         var pageContents = File.ReadAllText(pagePath);
+
+        if (!pageContents.Contains(LeaveFeedback)) {
+            Debug.LogWarning($"Skipping page with potentially no content at path: {pagePath}");
+            return type;
+        }
 
         if ((url.StartsWith("UnityEngine") && url.EndsWith("Module")) || url == "UnityEditor") {
             type = cache[url] = DocsIndex.PageType.Module;
