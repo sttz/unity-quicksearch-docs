@@ -1,7 +1,7 @@
 {
     "name": "ch.sttz.quicksearch.docs",
     "displayName": "Quick Search Docs",
-    "version": "0.0.3",
+    "version": "0.1.0",
     "unity": "2018.4",
     "description": "Unity Docs SearchProvider for Unity Quick Search.",
     "keywords": [ "unity", "quicksearch", "docs" ],
