@@ -18,15 +18,15 @@ public static class DocsIndexGenerator
     /// <summary>
     /// Relative path to where the search index JSON is stored.
     /// </summary>
-    const string IndexPath = "Documentation/en/ScriptReference/docdata/index.json";
+    const string IndexPath = "en/ScriptReference/docdata/index.json";
     /// <summary>
     /// Relative path to the file from which the documentation version is extracted.
     /// </summary>
-    const string VersionPath = "Documentation/en/ScriptReference/index.html";
+    const string VersionPath = "en/ScriptReference/index.html";
     /// <summary>
     /// Prefix in the documentation folder to locate files by the urls in the index.
     /// </summary>
-    const string UrlPrefix = "Documentation/en/ScriptReference";
+    const string UrlPrefix = "en/ScriptReference";
     /// <summary>
     /// Regex to parse version from <see cref="VersionPath"/>.
     /// </summary>
@@ -135,12 +135,13 @@ public static class DocsIndexGenerator
             index.unityVersion = match.Groups[1].Value;
             index.docsVersion = match.Groups[2].Value;
         }
+            // Create index asset
+            var output = Path.Combine(outputPath, $"DocsIndex-{index.unityVersion}-{index.docsVersion}.json");
+            var json = JsonUtility.ToJson(index);
+            File.WriteAllText(output, json);
 
-        // Create index asset
-        var outputPath = $"Assets/DocsIndex-{index.unityVersion}-{index.docsVersion}.asset";
-        AssetDatabase.CreateAsset(index, outputPath);
 
-        Debug.Log($"Saved index with {index.pages.Length} pages and {index.indexKeys.Length} entries to '{outputPath}'.");
+            Debug.Log($"Saved index with {index.pages.Length} pages and {index.indexKeys.Length} entries to '{output}'.");
     }
 
     /// <summary>

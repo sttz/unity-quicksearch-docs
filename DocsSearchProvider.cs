@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using JetBrains.Annotations;
 using Unity.QuickSearch;
@@ -24,6 +25,20 @@ public static class DocsSearchProvider
     /// Path prefix to package assets.
     /// </summary>
     static string packageFolderName = $"Packages/{packageName}";
+    
+    /// <summary>
+    /// Folder where the bundled indices are stored.
+    /// </summary>
+    static string indicesFolder = $"{packageFolderName}/Indices~";
+
+    /// <summary>
+    /// Base URL of Unity's online documentation.
+    /// </summary>
+    const string docsBaseUrl = "https://docs.unity3d.com";
+    /// <summary>
+    /// Sub path script reference in Unity's online versioned documentation.
+    /// </summary>
+    const string docsSubPath = "Documentation/ScriptReference";
 
     [UsedImplicitly, SearchItemProvider]
     public static SearchProvider CreateProvider()
@@ -59,11 +74,6 @@ public static class DocsSearchProvider
     }
 
     // ---------- Search Algorithm ----------
-
-    /// <summary>
-    /// Base URL of Unity's online documentation.
-    /// </summary>
-    const string BASE_URL = "https://docs.unity3d.com/ScriptReference/";
 
     /// <summary>
     /// The currently loaded search index.
@@ -189,14 +199,91 @@ public static class DocsSearchProvider
     /// </summary>
     static void LoadIndex()
     {
-        var guids = AssetDatabase.FindAssets("t:DocsIndex");
-        if (guids.Length == 0) {
-            Debug.LogError("No DocsIndex could be found.");
+        // First try override from project directory
+        var projectPath = Path.Combine(Application.dataPath, "..");
+        if (LoadIndex(projectPath)) {
             return;
         }
 
-        var path = AssetDatabase.GUIDToAssetPath(guids[0]);
-        searchIndex = AssetDatabase.LoadAssetAtPath<DocsIndex>(path);
+        // Next try override from Unity installation folder
+        var unityPath = Path.GetDirectoryName(EditorApplication.applicationPath);
+        if (LoadIndex(unityPath)) {
+            return;
+        }
+
+        // Then try local data folder
+        string dataPath;
+        #if UNITY_EDITOR_OSX
+        dataPath = "/Users/Shared";
+        #else
+        dataPath = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+        #endif
+        dataPath = Path.Combine(dataPath, packageName);
+        if (LoadIndex(dataPath)) {
+            return;
+        }
+
+        // Finally use built-in indices
+        if (LoadIndex(indicesFolder)) {
+            return;
+        }
+
+        Debug.LogError("Could not find an index for Quick Search Docs.");
+    }
+
+    static DocsIndex.MajorMinorVersion unityVersion;
+
+    /// <summary>
+    /// Load the best available index from the given path.
+    /// </summary>
+    static bool LoadIndex(string path)
+    {
+        if (!Directory.Exists(path)) return false;
+
+        if (unityVersion.major == 0) {
+            unityVersion = DocsIndex.MajorMinorVersion.FromUnityVersion(Application.unityVersion);
+        }
+
+        var bestVersion = new DocsIndex.MajorMinorVersion(0, 0);
+        string bestIndex = null;
+        var indices = Directory.GetFiles(path, "DocsIndex-*.json");
+        foreach (var index in indices) {
+            var indexVersion = DocsIndex.UnityVersionFromFileName(Path.GetFileName(index));
+            if (indexVersion.major == 0) continue;
+            
+            // Always use exact version match
+            if (indexVersion == unityVersion) {
+                bestVersion = indexVersion;
+                bestIndex = index;
+                break;
+            }
+
+            // For indices of older Unity versions, prefer the newest
+            if (indexVersion < unityVersion) {
+                if (indexVersion > bestVersion) {
+                    bestVersion = indexVersion;
+                    bestIndex = index;
+                }
+            
+            // For indices of newer Unity versions, prefer the oldest
+            // But always prefer indices of newer Unity versions
+            } else {
+                if (bestVersion < unityVersion || indexVersion < bestVersion) {
+                    bestVersion = indexVersion;
+                    bestIndex = index;
+                }
+            }
+        }
+
+        if (bestIndex == null) {
+            return false;
+        }
+
+        var json = File.ReadAllText(bestIndex);
+        searchIndex = JsonUtility.FromJson<DocsIndex>(json);
+        searchIndexPath = bestIndex;
+
+        return true;
     }
 
     // ---------- Icons ----------

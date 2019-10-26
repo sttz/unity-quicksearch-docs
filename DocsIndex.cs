@@ -5,11 +5,111 @@ using UnityEngine;
 namespace ch.sttz.quicksearch.docs
 {
 
-/// <summary>
-/// Generated index for a Unity documentation.
-/// </summary>
-public class DocsIndex : ScriptableObject
+[Serializable]
+public class DocsIndex
 {
+    /// <summary>
+    /// Unity Major.Minor version.
+    /// </summary>
+    [Serializable]
+    public struct MajorMinorVersion : IEquatable<MajorMinorVersion>
+    {
+        public int major;
+        public int minor;
+
+        public static bool TryParse(string input, out MajorMinorVersion version)
+        {
+            version = default;
+            var parts = input.Split('.');
+            if (parts.Length != 2 
+                    || !int.TryParse(parts[0], out version.major) 
+                    || !int.TryParse(parts[1], out version.minor)) {
+                return false;
+            }
+            return true;
+        }
+
+        public static MajorMinorVersion FromUnityVersion(string unityVersion)
+        {
+            MajorMinorVersion version = default;
+            var parts = unityVersion.Split('.');
+            if (parts.Length != 3
+                    || !int.TryParse(parts[0], out version.major) 
+                    || !int.TryParse(parts[1], out version.minor)) {
+                throw new Exception("Unexpected Unity version: " + unityVersion);
+            }
+            return version;
+        }
+
+        public MajorMinorVersion(int major, int minor)
+        {
+            this.major = major;
+            this.minor = minor;
+        }
+
+        public override string ToString()
+        {
+            return $"{major}.{minor}";
+        }
+
+        public override int GetHashCode()
+        {
+            return major.GetHashCode() ^ minor.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is MajorMinorVersion other) {
+                return this == other;
+            }
+            return false;
+        }
+
+        public bool Equals(MajorMinorVersion other)
+        {
+            return this == other;
+        }
+
+        public static bool operator ==(MajorMinorVersion lhs, MajorMinorVersion rhs)
+        {
+            return (lhs.major == rhs.major && lhs.minor == rhs.minor);
+        }
+
+        public static bool operator !=(MajorMinorVersion lhs, MajorMinorVersion rhs)
+        {
+            return (lhs.major != rhs.major || lhs.minor != rhs.minor);
+        }
+
+        public static bool operator <(MajorMinorVersion lhs, MajorMinorVersion rhs)
+        {
+            if (lhs.major < rhs.major) return true;
+            if (lhs.major > rhs.major) return false;
+            return (lhs.minor < rhs.minor);
+        }
+
+        public static bool operator >(MajorMinorVersion lhs, MajorMinorVersion rhs)
+        {
+            if (lhs.major > rhs.major) return true;
+            if (lhs.major < rhs.major) return false;
+            return (lhs.minor > rhs.minor);
+        }
+    }
+
+    /// <summary>
+    /// Parse the Unity Major.Minor version from a standard DocsIndex file name.
+    /// </summary>
+    /// <remarks>
+    /// The standard format is: "DocsIndex-Major.Minor-DocsVersion.json"<br/>
+    /// E.g. "DocsIndex-2019.2-003A.json"
+    /// </remarks>
+    public static MajorMinorVersion UnityVersionFromFileName(string name)
+    {
+        var parts = name.Split('-');
+        if (parts.Length != 3) return default;
+        if (!MajorMinorVersion.TryParse(parts[1], out var version)) return default;
+        return version;
+    }
+
     /// <summary>
     /// The type of documentation page.
     /// </summary>
@@ -71,7 +171,7 @@ public class DocsIndex : ScriptableObject
     /// <summary>
     /// Unity version the documentation belongs to.
     /// </summary>
-    public string unityVersion;
+    public MajorMinorVersion unityVersion;
     /// <summary>
     /// Version of the documentation itself.
     /// </summary>
