@@ -33,6 +33,15 @@ public static class DocsIndexGenerator
     static readonly Regex VersionRegex = new Regex(@"Publication: (\d+\.\d+)\w?-(\w+)");
 
     /// <summary>
+    /// Used to save last open dialog location for picking the documentation path.
+    /// </summary>
+    const string LastDocumentationPathKey = "QuickSearchDocs.DocumentationPath";
+    /// <summary>
+    /// Used to save the last save dialog location for saving the index.
+    /// </summary>
+    const string LastSavePathKey = "QuickSearchDocs.SavePath";
+
+    /// <summary>
     /// Struct used to parse the index JSON file.
     /// </summary>
     [Serializable]
@@ -51,7 +60,7 @@ public static class DocsIndexGenerator
     [MenuItem("Window/Quick Search Docs/Generate Index...")]
     public static void GenerateIndex()
     {
-        var path = EditorUtility.OpenFolderPanel("Select Unity Documentation", "", "");
+        var path = EditorUtility.OpenFolderPanel("Select Unity Documentation", EditorPrefs.GetString(LastDocumentationPathKey), "");
         if (string.IsNullOrEmpty(path)) return;
 
         var indexPath = Path.Combine(path, IndexPath);
@@ -61,87 +70,110 @@ public static class DocsIndexGenerator
                 "Selected folder could not be recognized as Unity documentation.\n\nSelect the top level folder that contains 'Documentation.html'.", 
                 "Bummer"
             );
+            return;
         }
+        EditorPrefs.SetString(LastDocumentationPathKey, path);
 
-        GenerateIndex(path);
+        var outputPath = EditorUtility.SaveFolderPanel("Select Output Folder", EditorPrefs.GetString(LastSavePathKey), "");
+        if (string.IsNullOrEmpty(outputPath)) return;
+        EditorPrefs.SetString(LastSavePathKey, outputPath);
+
+        GenerateIndex(path, outputPath);
     }
+
+    const string ProgressTitle = "Generate Index";
 
     /// <summary>
     /// Generate the index for the offline documentation at the given path.
     /// </summary>
-    public static void GenerateIndex(string docsPath)
+    public static void GenerateIndex(string docsPath, string outputPath)
     {
-        var indexPath = Path.Combine(docsPath, IndexPath);
-        if (!File.Exists(indexPath)) {
-            Debug.LogError($"Invalid docs path: Could not find index at {indexPath}");
-            return;
-        }
+        try {
+            var indexPath = Path.Combine(docsPath, IndexPath);
+            if (!File.Exists(indexPath)) {
+                Debug.LogError($"Invalid docs path: Could not find index at {indexPath}");
+                return;
+            }
 
-        var versionPath = Path.Combine(docsPath, VersionPath);
-        if (!File.Exists(versionPath)) {
-            Debug.LogError($"Invalid docs path: Could not find index at {versionPath}");
-            return;
-        }
+            var versionPath = Path.Combine(docsPath, VersionPath);
+            if (!File.Exists(versionPath)) {
+                Debug.LogError($"Invalid docs path: Could not find index at {versionPath}");
+                return;
+            }
 
-        // Deserialize index JSON
-        IndexData data;
-        using (var file = File.OpenText(indexPath)) {
-            var serializer = new JsonSerializer();
-            data = (IndexData)serializer.Deserialize(file, typeof(IndexData));
-        }
+            EditorUtility.DisplayCancelableProgressBar(ProgressTitle, "Converting original index...", 0.0f);
 
-        if (data.pages == null || data.info == null || data.common == null || data.searchIndex == null) {
-            Debug.LogError($"Failed to parse search index. {data.pages} / {data.info} / {data.common} / {data.searchIndex}");
-            return;
-        }
+            // Deserialize index JSON
+            IndexData data;
+            using (var file = File.OpenText(indexPath)) {
+                var serializer = new JsonSerializer();
+                data = (IndexData)serializer.Deserialize(file, typeof(IndexData));
+            }
 
-        var index = ScriptableObject.CreateInstance<DocsIndex>();
-        index.common = data.common.Keys.ToArray();
+            if (data.pages == null || data.info == null || data.common == null || data.searchIndex == null) {
+                Debug.LogError($"Failed to parse search index. {data.pages} / {data.info} / {data.common} / {data.searchIndex}");
+                return;
+            }
 
-        // Convert index dictionary to two sorted arrays for keys/values
-        index.indexKeys = new string[data.searchIndex.Count];
-        index.indexValues = new DocsIndex.Entry[data.searchIndex.Count];
-        var k = 0;
-        foreach (var pair in data.searchIndex) {
-            index.indexKeys[k] = pair.Key;
-            index.indexValues[k] = new DocsIndex.Entry { pages = pair.Value };
-            k++;
-        }
+            var index = new DocsIndex();
+            index.common = data.common.Keys.ToArray();
 
-        Array.Sort(index.indexKeys, index.indexValues);
+            // Convert index dictionary to two sorted arrays for keys/values
+            index.indexKeys = new string[data.searchIndex.Count];
+            index.indexValues = new DocsIndex.Entry[data.searchIndex.Count];
+            var k = 0;
+            foreach (var pair in data.searchIndex) {
+                index.indexKeys[k] = pair.Key;
+                index.indexValues[k] = new DocsIndex.Entry { pages = pair.Value };
+                k++;
+            }
 
-        // Collect page data into Page structs
-        var typeCache = new Dictionary<string, DocsIndex.PageType>(data.pages.Length);
-        index.pages = new DocsIndex.Page[data.pages.Length];
-        for (int i = 0; i < data.pages.Length; i++) {
-            var url = data.pages[i][0];
-            index.pages[i] = new DocsIndex.Page() {
-                title = data.pages[i][1],
-                description = (string)data.info[i][0],
-                url = url,
-                type = DeterminePageType(url, docsPath, typeCache)
-            };
-        }
+            Array.Sort(index.indexKeys, index.indexValues);
 
-        // Determine version of documentation
-        index.unityVersion = "unknown";
-        index.docsVersion = "unknown";
+            if (EditorUtility.DisplayCancelableProgressBar(ProgressTitle, "Parsing Documentation...", 0.1f)) return;
 
-        var mainHtml = File.ReadAllText(versionPath);
-        var match = VersionRegex.Match(mainHtml);
-        if (!match.Success) {
-            Debug.LogWarning($"Could not determine Unity version of docs (using '{versionPath}').");
-        } else {
-            index.unityVersion = match.Groups[1].Value;
-            index.docsVersion = match.Groups[2].Value;
-        }
+            // Collect page data into Page structs
+            var pageCount = data.pages.Length;
+            var typeCache = new Dictionary<string, DocsIndex.PageType>(pageCount);
+            index.pages = new DocsIndex.Page[pageCount];
+            for (int i = 0; i < pageCount; i++) {
+                var progress = 0.1f + 0.8f * (i / (pageCount - 1f));
+                if (EditorUtility.DisplayCancelableProgressBar(ProgressTitle, "Parsing Documentation...", progress)) return;
+                var url = data.pages[i][0];
+                index.pages[i] = new DocsIndex.Page() {
+                    title = data.pages[i][1],
+                    description = (string)data.info[i][0],
+                    url = url,
+                    type = DeterminePageType(url, docsPath, typeCache)
+                };
+            }
+
+            if (EditorUtility.DisplayCancelableProgressBar(ProgressTitle, "Finishing...", 0.9f)) return;
+
+            // Determine version of documentation
+            index.unityVersion = default;
+            index.docsVersion = "unknown";
+
+            var mainHtml = File.ReadAllText(versionPath);
+            var match = VersionRegex.Match(mainHtml);
+            if (!match.Success) {
+                Debug.LogWarning($"Could not determine Unity version of docs (using '{versionPath}').");
+            } else {
+                DocsIndex.MajorMinorVersion.TryParse(match.Groups[1].Value, out index.unityVersion);
+                index.docsVersion = match.Groups[2].Value;
+            }
+
             // Create index asset
             var output = Path.Combine(outputPath, $"DocsIndex-{index.unityVersion}-{index.docsVersion}.json");
             var json = JsonUtility.ToJson(index);
             File.WriteAllText(output, json);
 
+            EditorUtility.ClearProgressBar();
 
             Debug.Log($"Saved index with {index.pages.Length} pages and {index.indexKeys.Length} entries to '{output}'.");
+        } finally {
+            EditorUtility.ClearProgressBar();
+        }
     }
 
     /// <summary>
