@@ -1,7 +1,7 @@
 {
   "name": "ch.sttz.quicksearch.docs",
   "displayName": "Quick Search Docs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "unity": "2019.3",
   "description": "Unity Docs SearchProvider for Unity Quick Search.",
   "keywords": [
@@ -16,7 +16,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "com.unity.quicksearch": "1.6.0"
-  },
-  "type": "tool"
+    "com.unity.quicksearch": "1.6.0",
+    "com.unity.nuget.newtonsoft-json": "1.1.2"
+  }
 }
