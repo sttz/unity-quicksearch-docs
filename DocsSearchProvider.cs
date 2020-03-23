@@ -50,7 +50,7 @@ public static class DocsSearchProvider
         return new SearchProvider("ch.sttz.quicksearch-docs", "Docs") {
             filterId = "docs:",
             fetchItems = (context, items, provider) => {
-                var results = GetSearchResults(context.tokenizedSearchQueryLower, context.searchQuery)
+                var results = GetSearchResults(context.searchWords, context.searchQuery)
                     .Select(result => 
                         provider.CreateItem(
                             "ch.sttz.quicksearch-docs.result." + result.url, 
