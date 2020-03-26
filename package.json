@@ -16,7 +16,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "com.unity.quicksearch": "1.6.0",
+    "com.unity.quicksearch": "1.6.0-preview.4",
     "com.unity.nuget.newtonsoft-json": "1.1.2"
   }
 }
