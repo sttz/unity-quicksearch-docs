@@ -85,7 +85,7 @@ public static class DocsSearchProvider
     {
         return new[] {
             new SearchAction("ch.sttz.quicksearch-docs", "open", null, "Open in Browser...") {
-                handler = (item, context) => {
+                handler = (item) => {
                     if (item.data is DocsIndex.Page result) {
                         string url;
                         if (localDocsPath != null) {
