@@ -61,7 +61,7 @@ public static class DocsIndexGenerator
     /// <summary>
     /// Prompts to choose an offline documentation folder and then generates the index for it.
     /// </summary>
-    [MenuItem("Window/Quick Search Docs/Generate Index...")]
+    [MenuItem("Window/Quick Search/Generate Docs Index...", false, 5000)]
     public static void GenerateIndex()
     {
         var path = EditorUtility.OpenFolderPanel("Select Unity Documentation", EditorPrefs.GetString(LastDocumentationPathKey), "");
