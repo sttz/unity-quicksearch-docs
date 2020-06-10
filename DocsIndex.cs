@@ -105,7 +105,7 @@ public class DocsIndex
     public static MajorMinorVersion UnityVersionFromFileName(string name)
     {
         var parts = name.Split('-');
-        if (parts.Length != 3) return default;
+        if (parts.Length != 3 && parts.Length != 5) return default;
         if (!MajorMinorVersion.TryParse(parts[1], out var version)) return default;
         return version;
     }
@@ -176,6 +176,10 @@ public class DocsIndex
     /// Version of the documentation itself.
     /// </summary>
     public string docsVersion;
+    /// <summary>
+    /// Publication date YYYY-MM-DD string, replaced <see cref="docsVersion"/>.
+    /// </summary>
+    public string publicationDate;
 
     /// <summary>
     /// Helper struct to enable Unity to serialize and array of arrays.

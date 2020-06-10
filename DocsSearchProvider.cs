@@ -68,7 +68,7 @@ public static class DocsSearchProvider
                             "ch.sttz.quicksearch-docs.index", 
                             10000, 
                             "Quick Search Docs Index", 
-                            $"Index ({searchIndex.docsVersion}) for Unity {searchIndex.unityVersion} at {searchIndexPath}", 
+                            $"Index ({searchIndex.publicationDate ?? searchIndex.docsVersion}) for Unity {searchIndex.unityVersion} at {searchIndexPath}", 
                             null, 
                             searchIndexPath
                         )

@@ -30,7 +30,11 @@ public static class DocsIndexGenerator
     /// <summary>
     /// Regex to parse version from <see cref="VersionPath"/>.
     /// </summary>
-    static readonly Regex VersionRegex = new Regex(@"Publication: (\d+\.\d+)\w?-(\w+)");
+    static readonly Regex VersionRegex = new Regex(@"Version: <b>(\d+\.\d+)</b>");
+    /// <summary>
+    /// Regex to parse publication date from <see cref="VersionPath"/>.
+    /// </summary>
+    static readonly Regex PublicationDateRegex = new Regex(@"Publication Date: (\d{4}-\d{2}-\d{2})");
 
     /// <summary>
     /// Used to save last open dialog location for picking the documentation path.
@@ -152,19 +156,24 @@ public static class DocsIndexGenerator
 
             // Determine version of documentation
             index.unityVersion = default;
-            index.docsVersion = "unknown";
 
             var mainHtml = File.ReadAllText(versionPath);
-            var match = VersionRegex.Match(mainHtml);
-            if (!match.Success) {
+            var versionMatch = VersionRegex.Match(mainHtml);
+            if (!versionMatch.Success) {
                 Debug.LogWarning($"Could not determine Unity version of docs (using '{versionPath}').");
             } else {
-                DocsIndex.MajorMinorVersion.TryParse(match.Groups[1].Value, out index.unityVersion);
-                index.docsVersion = match.Groups[2].Value;
+                DocsIndex.MajorMinorVersion.TryParse(versionMatch.Groups[1].Value, out index.unityVersion);
+            }
+
+            var dateMatch = PublicationDateRegex.Match(mainHtml);
+            if (!dateMatch.Success) {
+                Debug.LogWarning($"Could not determine publication date of docs (using '{versionPath}').");
+            } else {
+                index.publicationDate = dateMatch.Groups[1].Value;
             }
 
             // Create index asset
-            var output = Path.Combine(outputPath, $"DocsIndex-{index.unityVersion}-{index.docsVersion}.json");
+            var output = Path.Combine(outputPath, $"DocsIndex-{index.unityVersion}-{index.publicationDate ?? index.docsVersion ?? "unknown"}.json");
             var json = JsonUtility.ToJson(index);
             File.WriteAllText(output, json);
 
