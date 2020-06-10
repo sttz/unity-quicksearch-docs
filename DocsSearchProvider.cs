@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using JetBrains.Annotations;
 using Unity.QuickSearch;
@@ -283,8 +284,10 @@ public static class DocsSearchProvider
 
         var bestVersion = new DocsIndex.MajorMinorVersion(0, 0);
         string bestIndex = null;
-        var indices = Directory.GetFiles(path, "DocsIndex-*.json");
-        foreach (var index in indices) {
+
+        var plainIndices = Directory.GetFiles(path, "DocsIndex-*.json");
+        var compressedIndices = Directory.GetFiles(path, "DocsIndex-*.json.gz");
+        foreach (var index in compressedIndices.Concat(plainIndices)) {
             var indexVersion = DocsIndex.UnityVersionFromFileName(Path.GetFileName(index));
             if (indexVersion.major == 0) continue;
             
@@ -316,7 +319,20 @@ public static class DocsSearchProvider
             return false;
         }
 
-        var json = File.ReadAllText(bestIndex);
+        string json;
+        if (Path.GetExtension(bestIndex) == ".json") {
+            json = File.ReadAllText(bestIndex);
+        } else {
+            using (
+                Stream file = File.Open(bestIndex, FileMode.Open),
+                gzip = new GZipStream(file, CompressionMode.Decompress),
+                memory = new MemoryStream()
+            ) {
+                gzip.CopyTo(memory);
+                json = System.Text.Encoding.UTF8.GetString((memory as MemoryStream).ToArray());
+            }
+        }
+
         searchIndex = JsonUtility.FromJson<DocsIndex>(json);
         searchIndexPath = bestIndex;
         localDocsPath = null;

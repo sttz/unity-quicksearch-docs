@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
@@ -173,9 +174,16 @@ public static class DocsIndexGenerator
             }
 
             // Create index asset
-            var output = Path.Combine(outputPath, $"DocsIndex-{index.unityVersion}-{index.publicationDate ?? index.docsVersion ?? "unknown"}.json");
+            var output = Path.Combine(outputPath, $"DocsIndex-{index.unityVersion}-{index.publicationDate ?? index.docsVersion ?? "unknown"}.json.gz");
             var json = JsonUtility.ToJson(index);
-            File.WriteAllText(output, json);
+
+            using (
+                Stream file = File.Open(output, FileMode.Create), 
+                gzip = new GZipStream(file, CompressionMode.Compress)
+            ) {
+                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                gzip.Write(bytes, 0, bytes.Length);
+            }
 
             EditorUtility.ClearProgressBar();
 
